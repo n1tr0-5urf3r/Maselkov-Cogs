@@ -671,6 +671,87 @@ class GuildWars2:
         output += "```"
         await self.bot.say(output)
 
+    @commands.group(pass_context=True)
+    async def wvw(self, ctx):
+        """Commands related to wvw"""
+        if ctx.invoked_subcommand is None:
+            await send_cmd_help(ctx)
+
+
+    @wvw.command(pass_context=True)
+    async def worlds(self, ctx):
+        """List all worlds
+        """
+        user = ctx.message.author
+        try:
+            endpoint = "worlds?ids=all"
+            results = await self.call_api(endpoint)
+        except APIError as e:
+            await self.bot.say("{0.mention}, API has responded with the following error: "
+                               "`{1}`".format(user, e))
+            return
+        output = "Available worlds are: ```"
+        for world in results:
+            output += world["name"] + ", "
+        output += "```"
+        await self.bot.say(output)
+#THIS DOESNT WORK AT ALL CURRENTLY
+    @wvw.command(pass_context=True, name="info")
+    async def worldinfo(self, ctx, *, world: str):
+        """Info about a world. If none is provided, defaults to account's world
+        """
+        user = ctx.message.author
+        endpoint = "wvw/matches?ids=all"
+
+        #TODO default to accounts world
+        wid = await self.getworldid(world)
+        if not wid:
+            await self.bot.say("Invalid world name")
+            return
+        try:
+            endpoint = "wvw/matches?world={0}".format(wid)
+            results = await self.call_api(endpoint)
+        except APIError as e:
+            await self.bot.say("{0.mention}, API has responded with the following error: "
+                               "`{1}`".format(user, e))
+            return
+        #worldname = #resolve worldname in case none is provided
+        worldcolor = ""
+        print (wid)
+        print (results["worlds"])
+        for key, value in results["all_worlds"].items():
+            if wid in value:
+                worldcolor = key
+        if not worldcolor:
+            await self.bot.say("Could not resolve world's color")
+            return
+        if worldcolor == "red":
+            color = discord.Colour.red()
+        elif worldcolor == "green":
+            color = discord.Colour.green()
+        else:
+            color = discord.Colour.blue()
+        warscore = results["scores"][worldcolor]
+        data = discord.Embed(description=None, colour=color)
+        data.add_field(name="Warscore", value=warscore)
+        data.set_author(name=world)
+        try:
+            await self.bot.say(embed=data)
+        except discord.HTTPException:
+            await self.bot.say("Need permission to embed links")
+
+    async def getworldid(self, world):
+        try:
+            endpoint = "worlds?ids=all"
+            results = await self.call_api(endpoint)
+        except APIError:
+            return None
+        for w in results:
+            if w["name"].lower() == world.lower():
+                return w["id"]
+        return None
+
+
 
     @commands.group(pass_context=True, no_pm=True)
     @checks.admin_or_permissions(manage_server=True)
