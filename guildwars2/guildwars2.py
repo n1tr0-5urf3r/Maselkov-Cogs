@@ -736,8 +736,8 @@ class GuildWars2:
             return
 
         data = discord.Embed(description='Members of {0}'.format(guild), color=3447003)
-        for members in results:
-            data.add_field(name=results[members]["name"], value=results[members]["rank"])
+        for member in results:
+            data.add_field(name=member['name'], value=member['rank'])
 
         try:
             await self.bot.say(embed=data)
